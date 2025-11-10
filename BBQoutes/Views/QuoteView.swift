@@ -15,19 +15,29 @@ struct QuoteView: View {
             // give us an access to our screen size
             GeometryReader { geo in
                 ZStack {
-                    // Oversized background image makes the ZStack larger than the screen.
-                    // That can cause text to think it has a huge width and not wrap at the screen edges.
+                    // Oversized background image ahead: it will make the ZStack's layout larger than the screen.
+                    // That can trick child views (like Text) into thinking they have a huge width, hurting line wrapping.
                     Image(show.lowercased().replacingOccurrences(of: " ", with: ""))
                         .resizable()
+                        // This image intentionally exceeds the screen to achieve the visual look,
+                        // but it also expands the ZStack's layout size. That's why we add matching frames to ZStack and VStack.
+                        // If this is purely decorative, disable interaction so it never intercepts touches:
+                        // .allowsHitTesting(false)
                         .frame(width: geo.size.width * 2.7, height: geo.size.height * 1.2)
 
-                    // Put the text in a VStack and CONSTRAIN its width to the screen.
-                    // This gives Text a real width to wrap within, so long lines break onto the next line.
+                    // Put content in a VStack and CONSTRAIN it to the screen size.
+                    // This gives Text a real width to wrap within so long lines break correctly.
                     VStack {
+                        // Top spacer with a minimum height so content clears the Dynamic Island/status area.
+                        // minLength is the minimum spacing; it can expand if more room is available.
+                        Spacer(minLength: 60)
+                        
                         // The quote text. It will now wrap because the VStack is limited to screen width.
                         Text("\"\(viewModel.quote.quote ) \"")
-                            // 1) Align the text inside its available width.
-                            // This only affects how lines are aligned, not the size of the view.
+                            // Let the text shrink (down to 50%) instead of truncating when space is tight.
+                            // Use this to keep long quotes readable without ellipses.
+                            .minimumScaleFactor(0.5)
+                            // Align lines within the available width; this doesn't change the view's size.
                             .multilineTextAlignment(.center)
 
                             // 2) Set the text color before adding backgrounds so the text stays readable.
@@ -63,8 +73,8 @@ struct QuoteView: View {
                             }
                             // Size the image relative to the screen:
                             // - width/1.1 ≈ 91% of screen width (slightly smaller to add margins)
-                            // - height/1.8 ≈ 56% of screen height (a bit over half, not exactly half)
-                            // Using divisors like 1.1 and 1.8 is a quick way to scale; tweak them to get the look you want.
+                            // - height/1.8 ≈ 56% of screen height (a bit over half)
+                            // Using divisors like 1.1 and 1.8 is a quick way to scale; tweak them to taste.
                             .frame(width: geo.size.width/1.1, height: geo.size.height/1.8)
                             .clipShape(.rect(cornerRadius: 50))
                             
@@ -73,27 +83,67 @@ struct QuoteView: View {
                                 .foregroundStyle(.white)
                                 // Inner spacing around the text so the background doesn't hug the letters (mostly vertical).
                                 .padding(10)
-                                // Expand the label to the full width of this ZStack so the background spans edge‑to‑edge.
-                                // If you remove this, the background will only be as wide as the text + padding.
-                                .frame(maxWidth: .infinity)
-                                // Put a material background behind the (now full‑width) label.
+                                // Put a material background behind the full‑width label.
                                 // Background comes after padding so it includes that inner space.
+                                .frame(maxWidth: .infinity)
                                 .background(.ultraThinMaterial)
 
                         }
                         // Important: set an explicit frame on the container BEFORE clipping.
                         // Clipping uses the view's current size. Without this frame, the ZStack can be larger
-                        // than the visible image (due to image scaling/overflow), so the rounded rect could
-                        // appear wider than the image (those ~20px extra on the sides).
+                        // than the visible image (due to scaling overflow), so the rounded rect could appear wider than the image.
                         .frame(width: geo.size.width/1.1, height: geo.size.height/1.8)
                         // Now that the container has the exact size we want, clip it to rounded corners.
                         // This trims both the image and the label background to the same rounded shape.
                         .clipShape(.rect(cornerRadius: 50))
                         
+                        // Extra spacing between the image card and the button so they don't hug the edges.
+                        // minLength guarantees at least this much breathing room on small screens.
+                        Spacer(minLength: 16)
+                        
+                        // Button best practice: use the label closure to wrap ALL visual content.
+                        // Then the entire label (padding + background) participates in hit-testing.
+                        // In the old version, overlapping layers could cover the text-only button, so only parts of the green area responded.
+                        Button {
+                            
+                        } label: {
+                            // Everything inside here is the tappable label. Keep visuals inside so tap area matches what users see.
+                            Text("Get Random Quote")
+                                .font(.title)
+                                .foregroundStyle(.white)
+                                // Inner padding makes the button bigger and increases the hit target.
+                                .padding()
+                                // Keep the background INSIDE the label so it's part of the tappable region.
+                                .background(.breakingBadGreen)
+                                // Clip the background to a rounded rect for the visual shape.
+                                .clipShape(.rect(cornerRadius: 7))
+                                // Make the tap target match the rounded shape (not just the text bounds).
+                                .contentShape(.rect(cornerRadius: 7))
+                                // Visual polish only; shadows don't affect hit-testing.
+                                .shadow(color: .breakingBadYellow, radius: 2)
+                        }
+                        // Reserve extra space so the button clears the TabView and safe area.
+                        // minLength keeps the button comfortably above bottom UI.
+                        Spacer(minLength: 95)
+                        
+                        // Why the old approach felt unresponsive:
+                        // - The oversized background image and the image container above can extend over the button area.
+                        // - Even if they look transparent (materials, clipping), they can intercept touches.
+                        // - By keeping the background inside the label and defining a contentShape, the full green area becomes the hit target.
+                        // Best practices:
+                        // - Keep button visuals inside the label closure.
+                        // - Use contentShape to align tap area with the visible shape.
+                        // - If a sibling view is purely decorative, consider .allowsHitTesting(false) on it to avoid stealing taps.
                     }
-                    .frame(width: geo.size.width) // Key: limit VStack to screen width so the text wraps.
+                    // Constrain the VStack to the screen too.
+                    // The oversized background image expands layout; stacks size to their children.
+                    // Without this, the VStack would stretch to the image's size (≈2.7x width, 1.2x height),
+                    // and your text/button would stop obeying screen bounds.
+                    .frame(width: geo.size.width, height: geo.size.height)
                 }
-                // Keep the ZStack itself the size of the screen to center everything.
+                // Keep the ZStack the size of the screen to re-center content under GeometryReader.
+                // We still need this even though the background image grows beyond it.
+                // The ZStack's frame sets the centering baseline; the image extends visually beyond it.
                 .frame(width: geo.size.width, height: geo.size.height)
             }
             .ignoresSafeArea()
@@ -104,4 +154,3 @@ struct QuoteView: View {
         QuoteView(show: "Breaking Bad")
             .preferredColorScheme(.dark)
     }
-
