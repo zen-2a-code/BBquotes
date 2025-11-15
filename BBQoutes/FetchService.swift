@@ -7,38 +7,42 @@
 
 import Foundation
 
+// Service layer: handles all network requests. Keeps ViewModel simple and testable.
 
-// Many devs would have called this FetchController because this is the thing that contorlls all the fetching.
+// FetchService: builds URLs, calls the API, and decodes responses.
 struct FetchService {
+    // Internal errors we can throw when responses are invalid.
     private enum FetchError: Error {
         case badResponse
     }
     
+    // Base API URL; we append paths and query items to build endpoints.
     private let baseURL = URL(string: "https://breaking-bad-api-six.vercel.app/api")!
     // target URL for fetching quotes = https://breaking-bad-api-six.vercel.app/api/quotes/random?production=show+name
     
+    /// Fetch a random quote for the given show.
+    /// - Parameter show: The production name used as a query (e.g., "Breaking Bad").
     func fetchQuote(from show: String) async throws -> Quote {
-        // Build fetch URL
+        // Build the endpoint URL
         let quoteURL = baseURL.appending(path: "quotes/random")
         let fetchURL = quoteURL.appending(queryItems: [URLQueryItem(name: "production", value: show)])
-        // Fetch data from url
-        // This is a Tuple -> (Food, Drink) it is not limited to, it might be more than 2
+        // Perform the request (data + response).
         
         let (data, response) = try await URLSession.shared.data(from: fetchURL)
         
-        // Handle response
-        guard let response = response as? HTTPURLResponse, response.statusCode == 200 else { // here it is imporant to note that we can chain guard checks, if the response is actually of that type
-            // then we check that the response is with this status code. The as is actually casting, and if the casting fails it results in nil - so it enterer the else instead of desclaring the response variable.
+        // Validate HTTP status code.
+        guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
             throw FetchError.badResponse
         }
         
-        // If data okay - decode data and put in Quote model
+        // Decode the JSON into a Quote.
         let quote = try JSONDecoder().decode(Quote.self, from: data)
         
-        // Return the quote
+        // Return the decoded quote.
         return quote
     }
     
+    /// Fetch character details by name.
     func fetchCharacter(_ name: String) async throws -> MovieCharacter {
         let characterURL = baseURL.appending(path: "characters")
         let fetchURL = characterURL.appending(queryItems: [URLQueryItem(name: "name", value: name)])
@@ -49,19 +53,21 @@ struct FetchService {
             throw FetchError.badResponse
         }
         
-        // we need to create a seprate decoder and not to use the default JSON Decoder as we have two worded variables both in our Model and in the JSON data itself. and we need to implement decoding stratagy.
+        // Use a decoder that converts snake_case JSON keys to camelCase Swift properties.
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         
-        // we need to decode with an array [MovieCharacters] because of how the API returns the JSON it currenly returns an array of objects (key-value pairs)
+        // API returns an array; decode it and take the first match.
         let characters: [MovieCharacter] = try decoder.decode([MovieCharacter].self, from: data)
         
-        // We return the first item from the Array as we have an array instead of just one character property
+        // Return the first character.
         return characters[0]
     }
     
-    // we return an optional Death object because the character might be still alive. So if that is the case we return nil
+    /// Fetch death info for a character if available.
+    /// - Returns: A Death if the character is found, otherwise nil.
     func fetchDeath(for character: String) async throws -> Death? {
+        // Optional because the character may still be alive.
         let fetchURL = baseURL.appending(path: "deaths")
         
         let (data, response) = try await URLSession.shared.data(from: fetchURL)
@@ -73,13 +79,10 @@ struct FetchService {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         
-        // in this collection we indeed have more than one death - we have all characters deaths data.
+        // Decode all deaths returned by the API.
         let deaths = try decoder.decode([Death].self, from: data)
         
-        // in swiftUI we have a view called forEach it help us loop though some code and build views more than once. In swift we have loop - for
-        
-        // we want to return only the death data for the character if he is actually dead, otherwise we want to return  nil
-        
+        // Find a matching entry for the given character.
         for death in deaths {
             if death.character == character {
                 return death
