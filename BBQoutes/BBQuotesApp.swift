@@ -6,9 +6,9 @@
 //
 
 import SwiftUI
-// App entry point: creates the window and shows ContentView.
+// App entry: shows ContentView in a window.
 
-/// BBQoutesApp: bootstraps the SwiftUI app.
+// SwiftUI app entry point.
 @main
 struct BBQoutesApp: App {
     var body: some Scene {
@@ -18,3 +18,12 @@ struct BBQoutesApp: App {
     }
 }
 
+/**
+ Roadmap (v2)
+  - ✅ Add El Camino tab
+  - ✅ Use all character images in CharacterView
+  - ✅ Auto-scroll to bottom after status is shown
+  - ✅ Fetch episode data
+  - ✅  Shorten image/color name lookups
+  - ✅  Create static constants for show names
+ */

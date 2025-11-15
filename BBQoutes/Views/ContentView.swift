@@ -11,29 +11,30 @@ import SwiftUI
 
 /// ContentView sets up the tab interface and injects QuoteView per tab.
 struct ContentView: View {
-        var body: some View {
-            TabView {
-                // Tab: Breaking Bad — shows quotes for this production.
-                Tab("Breaking Bad", systemImage: "tortoise") {
-                    QuoteView(show: "Breaking Bad")
-                        .toolbarBackgroundVisibility(.visible, for: .tabBar)
-                        // Keep the tab bar visible over dark backgrounds.
-                }
-                
-                // Tab: Better Call Saul — shows quotes for this production.
-                Tab("Better Call Saul", systemImage: "briefcase") {
-                    QuoteView(show: "Better Call Saul")
-                        .toolbarBackgroundVisibility(.visible, for: .tabBar)
-                        // Keep the tab bar visible over dark backgrounds.
-                }
+    // Tabs reuse QuoteView(show:). Pass a different show string + assets to add a new tab.
+    var body: some View {
+        TabView {
+            // Tip: .toolbarBackgroundVisibility(.visible, for: .tabBar) keeps the tab bar readable over images.
+            // Tab: Breaking Bad — shows quotes for this production.
+            Tab(Constants.bbName, systemImage: "tortoise") {
+                FetchView(show: Constants.bbName)
             }
-            // Force dark mode to match the show's aesthetic.
-            .preferredColorScheme(.dark)
             
+            // Tab: Better Call Saul — shows quotes for this production.
+            Tab(Constants.bcsName, systemImage: "briefcase") {
+                FetchView(show: Constants.bcsName)
+            }
+            
+            Tab(Constants.ecName, systemImage: "car") {
+                FetchView(show: Constants.ecName)
+            }
         }
+        // Force dark mode to match the show's aesthetic.
+        .preferredColorScheme(.dark)
+        
     }
+}
 
-    #Preview {
-        ContentView()
-    }
-
+#Preview {
+    ContentView()
+}
