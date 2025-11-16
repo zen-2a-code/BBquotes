@@ -20,6 +20,7 @@ import Foundation
 @MainActor
 // Class: we need reference semantics and an initializer to set up properties (quote, fetcher, status).
 class ViewModel {
+    // Loading states that drive the UI
     /// Network/loading states for the ViewModel. Used to drive UI feedback.
     enum FetchStatus {
         case notStarted
@@ -30,21 +31,26 @@ class ViewModel {
         case failed(error: Error)
     }
     
+    // Current loading state (readable by views, mutated here)
     // private(set): views can read status, but only the ViewModel can change it.
     private(set) var status: FetchStatus = .notStarted
     
     // Service responsible for network calls. Kept private to encapsulate fetching details.
     private let fetcher = FetchService()
     
+    // Latest quote shown in the UI
     // Current quote shown on screen.
     var quote: Quote
+    // Character for the current quote
     // Character associated with the quote.
     var character: MovieCharacter
+    // Random episode for the selected show
     var episode: Episode
     
     /// Load sample data from bundled JSON for initial UI.
     /// Demo-only: force-unwrap bundled sample JSON (safe in controlled samples).
     init() {
+        // Demo setup: preload sample JSON so the UI has data before the first fetch
         // Decode JSON using snake_case -> camelCase.
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
@@ -65,29 +71,40 @@ class ViewModel {
     
     /// Fetch random quote + character + optional death for the show.
     func getQuoteData(for show: String) async {
+        // 1) Enter loading state
         status = .fetching
         do {
+            // 2) Fetch quote for the selected show
             quote = try await fetcher.fetchQuote(from: show)
+            // 3) Fetch full character details
             character = try await fetcher.fetchCharacter(quote.character)
+            // 4) Optionally load death info (may be nil)
             character.death = try await fetcher.fetchDeath(for: character.name)
             
+            // 5) Show quote UI
             status = .successQuote
         } catch {
+            // If any step fails, show an error
             status = .failed(error: error)
         }
         
     }
     
     func getEpisode(for show: String) async {
+        // 1) Enter loading state
         status = .fetching
         
         do {
+            // 2) Fetch a random episode for the show
             if let unwrappedEpisode = try await fetcher.fetchEpisode(show) {
+                // 3) Update current episode
                 episode = unwrappedEpisode
             }
             
+            // 4) Show episode UI
             status = .successEpisode
         } catch {
+            // If the request fails, show an error
             status = .failed(error: error)
         }
     }

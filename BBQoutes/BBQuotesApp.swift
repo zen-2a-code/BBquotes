@@ -6,9 +6,8 @@
 //
 
 import SwiftUI
-// App entry: shows ContentView in a window.
 
-// SwiftUI app entry point.
+// App entry point: launches ContentView in a window.
 @main
 struct BBQoutesApp: App {
     var body: some Scene {

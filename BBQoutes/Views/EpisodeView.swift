@@ -7,19 +7,24 @@
 
 import SwiftUI
 
+// EpisodeView: shows details for a single episode.
 struct EpisodeView: View {
+    // Data to display
     let episode: Episode
     
     
     var body: some View {
+        // Text + image stacked vertically
         VStack (alignment: .leading) {
+            // Title
             Text(episode.title)
                 .font(.largeTitle)
             
+            // Season/Episode formatted
             Text(episode.seasonEpisode)
                 .font(.title2)
             
-            AsyncImage (url: episode.image) { image in
+            AsyncImage (url: episode.image) { image in // Remote image
                 image
                     .resizable()
                     .scaledToFit()
@@ -28,15 +33,18 @@ struct EpisodeView: View {
                 ProgressView()
             }
             
+            // Summary
             Text(episode.synopsis)
                 .font(.title3)
                 .minimumScaleFactor(0.5)
                 .padding(.bottom)
             
+            // Credits and air date
             Text("Written By: \(episode.writtenBy)")
-            Text("Dirrected By: \(episode.directedBy)")
+            Text("Directed By: \(episode.directedBy)")
             Text("Aired: \(episode.airDate)")
         }
+        // Card styling
         .padding()
         .foregroundStyle(.white)
         .background(.black.opacity(0.6))
@@ -45,6 +53,7 @@ struct EpisodeView: View {
     }
 }
 
+// Preview with sample data
 #Preview {
     EpisodeView(episode: ViewModel().episode)
 }

@@ -7,14 +7,12 @@
 
 import SwiftUI
 
-// Root view: hosts two tabs (Breaking Bad, Better Call Saul).
-
-/// ContentView sets up the tab interface and injects QuoteView per tab.
+// Root view: Tab bar with three shows.
 struct ContentView: View {
-    // Tabs reuse QuoteView(show:). Pass a different show string + assets to add a new tab.
+    // Each tab embeds FetchView for a different show
     var body: some View {
+        // Tip: .toolbarBackgroundVisibility(.visible, for: .tabBar) keeps the tab bar readable over images.
         TabView {
-            // Tip: .toolbarBackgroundVisibility(.visible, for: .tabBar) keeps the tab bar readable over images.
             // Tab: Breaking Bad — shows quotes for this production.
             Tab(Constants.bbName, systemImage: "tortoise") {
                 FetchView(show: Constants.bbName)
@@ -29,6 +27,7 @@ struct ContentView: View {
                 FetchView(show: Constants.ecName)
             }
         }
+        // Force dark mode for consistent look
         // Force dark mode to match the show's aesthetic.
         .preferredColorScheme(.dark)
         

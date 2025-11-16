@@ -7,87 +7,62 @@
 
 import SwiftUI
 
+// FetchView shows a background image for a TV show and lets the user fetch a random quote or episode.
 struct FetchView: View {
+    // View model that handles network calls and state for the UI
     let viewModel = ViewModel()
+    // The current show name (e.g., "Breaking Bad") used for theming and API requests
     let show: String
+    // Controls if the character details sheet is visible
     @State var showCharacterInfo = false
     
+    // Main view layout
     var body: some View {
-        // give us an access to our screen size
+        // Gives access to the screen size (geo.size)
         GeometryReader { geo in
+            // Background image behind the main content
             ZStack {
-                // Background image named from show (e.g., "El Camino" -> "elcamino"). It’s oversized for the look.
+                // Use the show name to pick a matching background asset
                 Image(show.removeCaseAndSpaces())
                     .resizable()
                     // This image intentionally exceeds the screen to achieve the visual look.
                     .frame(width: geo.size.width * 2.7, height: geo.size.height * 1.2)
 
-                // Constrain content to screen size so text wraps and layout stays stable.
+                // Vertical layout for content and actions
                 VStack {
+                    // Main content area that changes based on loading state
                     VStack{
+                        // Push content down a bit from the top
                         Spacer(minLength: 60)
                         
+                        // Show different views depending on the current loading status
                         switch viewModel.status {
-                        case .notStarted:
+                        case .notStarted: // Nothing yet - wait for first fetch
                             EmptyView()
+                        case .successQuote: // Show fetched quote
+                            QuoteView(viewModel: viewModel, showCharacterInfo: $showCharacterInfo, geoSize: geo.size)
                             
-                        case .fetching:
+                        case .fetching: // Loading indicator while fetching
                             ProgressView()
-                            
-                        case .successQuote:
-                            // Quote bubble
-                            Text("\"\(viewModel.quote.quote ) \"")
-                                .minimumScaleFactor(0.5)
-                                .multilineTextAlignment(.center)
-                                .foregroundColor(.white)
-                                .padding()
-                                .background(.black.opacity(0.5))
-                                .clipShape(RoundedRectangle(cornerRadius: 25))
-                                .padding(.horizontal)
-                            
-                            // Character card
-                            ZStack (alignment: .bottom) {
-                                
-                                AsyncImage(url: viewModel.character.images[0]) { image in
-                                    image
-                                        .resizable()
-                                        .scaledToFill()
-                                } placeholder: {
-                                    ProgressView()
-                                }
-                                .frame(width: geo.size.width/1.1, height: geo.size.height/1.8)
-                                .clipShape(.rect(cornerRadius: 50))
-                                
-                                Text(viewModel.quote.character)
-                                    .foregroundStyle(.white)
-                                    .padding(10)
-                                    .frame(maxWidth: .infinity)
-                                    .background(.ultraThinMaterial)
-                                
-                            }
-                            // Set container size before clipping.
-                            .frame(width: geo.size.width/1.1, height: geo.size.height/1.8)
-                            .clipShape(.rect(cornerRadius: 50))
-                            .onTapGesture {
-                                showCharacterInfo.toggle()
-                            }
-                            
-                        case .successEpisode:
+
+                        case .successEpisode: // Show fetched episode
                             EpisodeView(episode: viewModel.episode)
-                        case .failed(error: let error):
+                        case .failed(error: let error): // Show error message
                             Text(error.localizedDescription)
                         }
+                        // Add breathing room below the content
                         Spacer(minLength: 20)
                     }
                     
-                    // Button triggers fetch
+                    // Action buttons to fetch a quote or an episode
                     HStack {
                         Button {
                             Task {
-                                // Use Task to call async function from button tap.
+                                // Fetch a random quote for the current show
                                 await viewModel.getQuoteData(for: show)
                             }
                         } label: {
+                            // Button styling matches the current show's theme
                             Text("Get Random Quote")
                                 .font(.title3)
                                 .foregroundStyle(.white)
@@ -102,10 +77,11 @@ struct FetchView: View {
                         
                         Button {
                             Task {
-                                // Use Task to call async function from button tap.
+                                // Fetch a random episode for the current show
                                 await viewModel.getEpisode(for: show)
                             }
                         } label: {
+                            // Button styling matches the current show's theme
                             Text("Get Random Episode")
                                 .font(.title3)
                                 .foregroundStyle(.white)
@@ -116,25 +92,34 @@ struct FetchView: View {
                                 .shadow(color: Color("\(show.removeSpaces())Shadow"), radius: 2)
                         }
                     }
+                    // Keep buttons away from screen edges
                     .padding(.horizontal, 30)
-                    // Keep space above tab bar.
+                    // Leave space for the tab bar at the bottom
                     Spacer(minLength: 95)
                 }
-                // Keep content sized to screen (background is larger).
+                // Keep the content constrained to the screen size
                 .frame(width: geo.size.width, height: geo.size.height)
             }
-            // Keep container sized to screen.
+            // Run once when the view appears: prefetch a quote
+            .task {
+                await viewModel.getQuoteData(for: show)
+            }
+            // Make the container match the screen size
             .frame(width: geo.size.width, height: geo.size.height)
         }
+        // Let the background extend under system bars
         .ignoresSafeArea()
+        // Ensure the tab bar stays visible over the background
         .toolbarBackgroundVisibility(.visible, for: .tabBar) // Keep tab bar visible. Placing it here avoids repeating in each tab.
+        // Present character details when requested
         .sheet(isPresented: $showCharacterInfo) {
-            // Present CharacterView when tapped.
+            // Pass the selected character and current show to the sheet
             CharacterView(character: viewModel.character, show: show)
         }
     }
 }
 
+// Preview with a default show and dark mode
 #Preview {
     FetchView(show: Constants.bbName)
         .preferredColorScheme(.dark)

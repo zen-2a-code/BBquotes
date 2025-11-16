@@ -7,38 +7,29 @@
 
 import SwiftUI
 
-
-/**
- CharacterView: shows a character's details for a given show.
- Layout: GeometryReader -> ZStack(bg image) -> ScrollView -> VStack(content).
- Notes:
- - VStack inside ScrollView stacks many views vertically.
- - Alignment is visible when the container has width; use `.frame(maxWidth: .infinity, alignment: .leading)` or a fixed width.
- */
+// CharacterView: shows details for a character with images and metadata.
 struct CharacterView: View {
-    let character: MovieCharacter  // The movie character whose details are shown
-    let show: String               // The show name used to derive background image asset
+    // Data to display
+    let character: MovieCharacter  
+    // Used to pick themed background image
+    let show: String               
     
     var body: some View {
-        // Provides container size for responsive layout
+        // Get screen size for responsive layout
         GeometryReader { geo in
             ScrollViewReader { proxy in
-                
-            
-            // Background image behind scrollable content
+                // Background image with scrollable content on top
                 ZStack (alignment: .top){
-                    Image(show.removeCaseAndSpaces()) // Asset name derived from lowercased show name without spaces
+                    Image(show.removeCaseAndSpaces()) // Background derived from show name (lowercased, no spaces)
                         .resizable()
                         .scaledToFit()
                     
-                    // Vertical scrolling of character details; scroll indicators hidden below
+                    // Vertical scroll for long content
                     ScrollView {
+                        // Swipe through character images
                         TabView {
-                            
-                            ForEach(character.images, id: \.self) {
-                                characterImageURL in
-                                // Character image (async) with a loading spinner.
-                                AsyncImage(url: characterImageURL) { image in
+                            ForEach(character.images, id: \.self) { characterImageURL in
+                                AsyncImage(url: characterImageURL) { image in // Load remote image
                                     image
                                         .resizable()
                                         .scaledToFill()
@@ -47,19 +38,19 @@ struct CharacterView: View {
                                 }
                             }
                         }
-                        .tabViewStyle(.page)
+                        .tabViewStyle(.page) // Page dots + swipe
                         .frame(width: geo.size.width/1.2, height: geo.size.height/1.7) // Size image relative to screen.
                         .clipShape(.rect(cornerRadius: 25)) // Rounded corners.
                         .padding(.top, 60) // Spacing from top.
                         
-                        // Text sections stacked vertically; left-aligned.
+                        // Text sections
                         VStack (alignment:.leading){
                             // Character name
                             Text(character.name)
                                 .font(.largeTitle)
                             
                             // Portrayed by info
-                            Text("Potrayed by \(character.portrayedBy)")
+                            Text("Portrayed by \(character.portrayedBy)")
                                 .font(.subheadline)
                             
                             // Section break
@@ -103,19 +94,19 @@ struct CharacterView: View {
                             // Section break
                             Divider()
                             
-                            // Tap to reveal status/death info.
+                            // Tap to reveal status and death info
                             DisclosureGroup("Status (spoiler alert!)") {
                                 VStack (alignment: .leading) {
                                     Text(character.status)
                                         .font(.title2)
                                     
                                     if let death = character.death {
-                                        AsyncImage(url: death.image) { image in
+                                        AsyncImage(url: death.image) { image in // Load death image
                                             image
                                                 .resizable()
                                                 .scaledToFit()
                                                 .clipShape(.rect(cornerRadius: 15))
-                                                .onAppear(){
+                                                .onAppear { // Auto-scroll to details when image appears
                                                     withAnimation {
                                                         proxy.scrollTo("characterDetails", anchor: .bottom)
                                                     }
@@ -127,32 +118,26 @@ struct CharacterView: View {
                                         Text("How: \(death.details)")
                                             .padding(.bottom, 7)
                                         Text("Last words: \"\(death.lastWords)\"")
-                                        
-                                        
                                     }
                                 }
-                                // Give full width so `.leading` alignment is visible.
+                                // Give full width so .leading alignment is visible.
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             }
                             .tint(.primary) // Tint = accent color (chevron/links). .primary adapts to light/dark.
-                            
-                            
                         }
                         // Tip: Narrow column? Wrap in HStack { VStack(...).frame(width: ...); Spacer() } to pin left. Or fill width + .padding(.horizontal).
                         .frame(width: geo.size.width/1.25, alignment: .leading) // Fixed readable width
                         .padding(.bottom, 50)
-                        .id("characterDetails")                    }
-                    // Hide scrollbar
-                    .scrollIndicators(.hidden) // Scrollbar hidden so it won’t appear on the right; not due to frame
+                        .id("characterDetails")
+                    }
+                    .scrollIndicators(.hidden) // Hide scrollbar
                 }
             }
-            
         }.ignoresSafeArea()
-        
     }
 }
 
+// Preview with sample data
 #Preview {
     CharacterView(character: ViewModel().character, show: Constants.bbName)
 }
-

@@ -7,7 +7,7 @@
 
 // Model: a single quote and the speaker's name.
 
-/// Quote returned by the API (or loaded from the bundle).
+// Quote model returned by the API.
 struct Quote: Decodable {
     let quote: String
     let character: String // Character name
