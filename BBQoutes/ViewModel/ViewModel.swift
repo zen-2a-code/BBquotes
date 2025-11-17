@@ -14,11 +14,18 @@ import Foundation
 
 // Tip: mark members private if no other type needs them.
 
-// @Observable: make properties observable
+// @Observable: auto-tracks changes to properties so SwiftUI views update automatically when values change
 @Observable
-// @MainActor: update UI on main thread
-@MainActor
-// Class: we need reference semantics and an initializer to set up properties (quote, fetcher, status).
+// @MainActor: runs this type on the main thread so UI updates are safe (avoids crashes/glitches from background threads)
+
+// Class (not struct): ViewModels hold shared, mutable state observed by many views.
+// Structs can be single instances too, but they are value types (copies). Classes are reference types (one shared object).
+// We choose class so all views observe the same changing state, which fits @Observable/@MainActor and MVVM best practice.
+
+/**
+ • Struct = value type (copy on write): When you pass a struct around, each place gets its own copy. Changing it in one place doesn’t automatically change it everywhere else.
+ • Class = reference type (shared): When you pass a class around, everyone refers to the same instance. Changing it in one place is seen by everyone.
+ */
 class ViewModel {
     // Loading states that drive the UI
     /// Network/loading states for the ViewModel. Used to drive UI feedback.
@@ -38,13 +45,8 @@ class ViewModel {
     // Service responsible for network calls. Kept private to encapsulate fetching details.
     private let fetcher = FetchService()
     
-    // Latest quote shown in the UI
-    // Current quote shown on screen.
     var quote: Quote
-    // Character for the current quote
-    // Character associated with the quote.
     var character: MovieCharacter
-    // Random episode for the selected show
     var episode: Episode
     
     /// Load sample data from bundled JSON for initial UI.
@@ -62,7 +64,7 @@ class ViewModel {
         quote = try! decoder.decode(Quote.self, from: quoteData)
 
         // Load sample character JSON.
-        let characterData = try! Data(contentsOf: Bundle.main.url(forResource: "samplecharacter", withExtension: "json")!)
+        let characterData  = try! Data(contentsOf: Bundle.main.url(forResource: "samplecharacter", withExtension: "json")!)
         character = try! decoder.decode(MovieCharacter.self, from: characterData)
         
         let episodeData = try! Data(contentsOf: Bundle.main.url(forResource: "sampleepisode", withExtension: "json")!)
@@ -110,3 +112,4 @@ class ViewModel {
     }
     
 }
+
